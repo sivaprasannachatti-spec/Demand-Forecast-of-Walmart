@@ -3,8 +3,8 @@
    API calls, Chart.js, KPI population
    ============================================ */
 
-// Use port 8000 for FastAPI backend
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+// Use relative URL so it works on both localhost and deployed environments
+const API_BASE = '/api/v1';
 let forecastChartInstance = null;
 
 /**
