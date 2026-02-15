@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Walmart Demand Forecasting Dashboard - Sales Predictions & Analytics">
+    <title>Dashboard | Walmart Demand Forecasting</title>
+    <link rel="stylesheet" href="./static/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body class="dashboard-body">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="material-symbols-outlined sidebar-logo">analytics</span>
+                <div class="sidebar-brand-text">
+                    <span class="sidebar-title">Walmart</span>
+                    <span class="sidebar-sub">Demand Forecast</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="./index.html" class="nav-item">
+                <span class="material-symbols-outlined nav-item-icon">home</span>
+                <span class="nav-item-text">Home</span>
+            </a>
+            <a href="#" class="nav-item active">
+                <span class="material-symbols-outlined nav-item-icon">dashboard</span>
+                <span class="nav-item-text">Dashboard</span>
+            </a>
+            <a href="#models" class="nav-item">
+                <span class="material-symbols-outlined nav-item-icon">model_training</span>
+                <span class="nav-item-text">Model Comparison</span>
+            </a>
+        </nav>
+
+        <!-- KPI Cards (Left Side) -->
+        <div class="sidebar-kpis" id="sidebarKpis">
+            <h3 class="kpi-section-title">Key Metrics</h3>
+
+            <div class="kpi-card kpi-blue" id="kpiTotal">
+                <div class="kpi-card-top">
+                    <span class="material-symbols-outlined kpi-icon">payments</span>
+                    <span class="kpi-badge">30 Days</span>
+                </div>
+                <div class="kpi-value" id="totalSales">
+                    <div class="kpi-skeleton"></div>
+                </div>
+                <div class="kpi-label">Total Predicted Sales</div>
+                <div class="kpi-bar">
+                    <div class="kpi-bar-fill kpi-bar-blue"></div>
+                </div>
+            </div>
+
+            <div class="kpi-card kpi-purple" id="kpiAvg">
+                <div class="kpi-card-top">
+                    <span class="material-symbols-outlined kpi-icon">trending_up</span>
+                    <span class="kpi-badge">Daily</span>
+                </div>
+                <div class="kpi-value" id="avgSales">
+                    <div class="kpi-skeleton"></div>
+                </div>
+                <div class="kpi-label">Average Daily Sales</div>
+                <div class="kpi-bar">
+                    <div class="kpi-bar-fill kpi-bar-purple"></div>
+                </div>
+            </div>
+
+            <div class="kpi-card kpi-emerald" id="kpiDays">
+                <div class="kpi-card-top">
+                    <span class="material-symbols-outlined kpi-icon">calendar_month</span>
+                    <span class="kpi-badge">Period</span>
+                </div>
+                <div class="kpi-value" id="forecastDays">
+                    <div class="kpi-skeleton"></div>
+                </div>
+                <div class="kpi-label">Forecast Duration</div>
+                <div class="kpi-bar">
+                    <div class="kpi-bar-fill kpi-bar-emerald"></div>
+                </div>
+            </div>
+
+            <div class="kpi-card kpi-amber" id="kpiPeak">
+                <div class="kpi-card-top">
+                    <span class="material-symbols-outlined kpi-icon">star</span>
+                    <span class="kpi-badge">Peak</span>
+                </div>
+                <div class="kpi-value" id="peakSales">
+                    <div class="kpi-skeleton"></div>
+                </div>
+                <div class="kpi-label">Peak Day Sales</div>
+                <div class="kpi-sub" id="peakDate">--</div>
+                <div class="kpi-bar">
+                    <div class="kpi-bar-fill kpi-bar-amber"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <span class="sidebar-status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Loading...</span>
+            </span>
+        </div>
+    </aside>
+
+    <!-- Main Content (Right Side) -->
+    <main class="main-content">
+
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <div class="page-info">
+                    <h1 class="page-title">Sales Forecast Dashboard</h1>
+                    <span class="page-breadcrumb">Home / Dashboard</span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="topbar-badge" id="modelBadge">
+                    <span class="material-symbols-outlined">model_training</span>
+                    SARIMA Model
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+
+            <!-- Forecast Chart -->
+            <section class="card chart-card" id="chartSection">
+                <div class="card-header">
+                    <div class="card-header-left">
+                        <span class="material-symbols-outlined card-icon">show_chart</span>
+                        <div>
+                            <h2 class="card-title">30-Day Sales Forecast</h2>
+                            <p class="card-subtitle">Predicted sales using SARIMA model</p>
+                        </div>
+                    </div>
+                    <div class="card-header-right">
+                        <span class="chart-badge">Live Forecast</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrap">
+                        <canvas id="forecastChart"></canvas>
+                    </div>
+                    <!-- Loading overlay -->
+                    <div class="chart-loading" id="chartLoading">
+                        <div class="loader-ring"></div>
+                        <span>Generating forecast...</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Model Comparison -->
+            <section class="models-section" id="models">
+                <div class="card-header standalone-header">
+                    <div class="card-header-left">
+                        <span class="material-symbols-outlined card-icon">compare</span>
+                        <div>
+                            <h2 class="card-title">Model Performance Comparison</h2>
+                            <p class="card-subtitle">Actual vs Predicted — SARIMA & ARIMA</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="model-grid">
+                    <div class="card model-card">
+                        <div class="model-header">
+                            <span class="model-name">SARIMA Model</span>
+                            <span class="model-tag tag-primary">Primary</span>
+                        </div>
+                        <div class="model-img-wrap">
+                            <img src="../SARIMA.png" alt="SARIMA Model Results" class="model-img" loading="lazy">
+                        </div>
+                        <div class="model-footer">
+                            <p class="model-desc">Seasonal ARIMA with weekly seasonality — order (1,1,1)(1,2,2,7).
+                                Captures both trend and seasonal patterns.</p>
+                        </div>
+                    </div>
+
+                    <div class="card model-card">
+                        <div class="model-header">
+                            <span class="model-name">ARIMA Model</span>
+                            <span class="model-tag tag-secondary">Baseline</span>
+                        </div>
+                        <div class="model-img-wrap">
+                            <img src="../ARIMA.png" alt="ARIMA Model Results" class="model-img" loading="lazy">
+                        </div>
+                        <div class="model-footer">
+                            <p class="model-desc">Non-seasonal ARIMA baseline. Captures trend only — used as benchmark
+                                against the SARIMA model.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Error Toast -->
+    <div class="toast" id="toast">
+        <span class="material-symbols-outlined toast-icon">error</span>
+        <span class="toast-msg" id="toastMessage">Something went wrong</span>
+        <button class="toast-close" onclick="hideToast()">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </div>
+
+    <script src="./static/js/dashboard.js"></script>
+</body>
+
+</html>

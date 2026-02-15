@@ -1,0 +1,14 @@
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+torch
+statsmodels
+dill
+fastapi
+uvicorn
+pydantic
+gdown
+joblib
+-e .
