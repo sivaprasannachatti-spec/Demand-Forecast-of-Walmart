@@ -24,13 +24,19 @@ async function fetchForecast() {
         const response = await fetch(`${API_BASE}/predict_sales`);
 
         if (!response.ok) {
-            throw new Error(`Server returned ${response.status}`);
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
+            throw new Error(`Server returned ${response.status}: ${errorText}`);
         }
 
         const result = await response.json();
-        const data = result.data;
+        console.log('API Response:', result);
+
+        // Handle different response structures
+        const data = result.data || result;
 
         if (!data || !data.forecast) {
+            console.error('Unexpected response format:', result);
             throw new Error('Invalid response format from API');
         }
 
@@ -42,7 +48,7 @@ async function fetchForecast() {
     } catch (error) {
         console.error('Forecast Error:', error);
         setStatus('Error', 'error');
-        showToast('Failed to fetch forecast. Make sure the backend server is running on port 8000.');
+        showToast(`Forecast failed: ${error.message}`);
     }
 }
 

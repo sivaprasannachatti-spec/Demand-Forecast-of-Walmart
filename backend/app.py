@@ -15,17 +15,18 @@ app = FastAPI(
 
 MODEL_PATH = "model.pkl"
 
-# Download model from Google Drive if not present locally
 if not os.path.exists(MODEL_PATH):
-    print("Downloading model from Google Drive...")
+    print("Downloading model from drive...")
+    
+    # url = "https://drive.google.com/file/d/1xgTR-zfUmGc59Y1CmTmv4wQ714kfJbnP/view?usp=sharing"
     file_id = "1xgTR-zfUmGc59Y1CmTmv4wQ714kfJbnP"
     url = f"https://drive.google.com/uc?id={file_id}"
+    
     gdown.download(url, MODEL_PATH, quiet=False)
-    print("Model downloaded successfully!")
 
 print("Loading model...")
 model = joblib.load(MODEL_PATH)
-print("Model loaded successfully")
+print(f"Model loaded successfully: {model}")
 
 
 
