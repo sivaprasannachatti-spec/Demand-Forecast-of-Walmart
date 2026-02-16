@@ -1,44 +1,31 @@
 /* ============================================
    Dashboard Page JavaScript
-   API calls, Chart.js, KPI population
+   Uses server-injected data — NO fetch needed!
    ============================================ */
 
-// Use relative URL so it works on both localhost and deployed environments
-const API_BASE = '/api/v1';
 let forecastChartInstance = null;
 
 /**
- * On page load, fetch the forecast data
+ * On page load, use the data injected by the backend
  */
 document.addEventListener('DOMContentLoaded', () => {
-    fetchForecast();
+    loadDashboard();
 });
 
 /**
- * Fetch forecast from the backend
+ * Load dashboard using server-injected data (window.__FORECAST_DATA__)
  */
-async function fetchForecast() {
+function loadDashboard() {
     setStatus('Loading...', 'loading');
 
     try {
-        const response = await fetch(`${API_BASE}/predict_sales`);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error Response:', errorText);
-            throw new Error(`Server returned ${response.status}: ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log('API Response:', result);
-
-        // Handle different response structures
-        const data = result.data || result;
+        const data = window.__FORECAST_DATA__;
 
         if (!data || !data.forecast) {
-            console.error('Unexpected response format:', result);
-            throw new Error('Invalid response format from API');
+            throw new Error('Forecast data not available. Try refreshing the page.');
         }
+
+        console.log('Forecast data loaded:', data);
 
         // Populate the dashboard
         populateKPIs(data);
@@ -46,9 +33,9 @@ async function fetchForecast() {
         setStatus('Forecast Ready', 'ready');
 
     } catch (error) {
-        console.error('Forecast Error:', error);
+        console.error('Dashboard Error:', error);
         setStatus('Error', 'error');
-        showToast(`Forecast failed: ${error.message}`);
+        showToast(`Dashboard error: ${error.message}`);
     }
 }
 

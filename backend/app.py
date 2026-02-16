@@ -2,8 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-from backend.routes.forecast_route import router 
+from backend.routes.forecast_route import router
+from backend.services.forecast_service import getForecast
 import os
+import json
 import gdown
 
 app = FastAPI(
@@ -16,7 +18,7 @@ MODEL_PATH = "model.pkl"
 
 @app.on_event("startup")
 def download_model():
-    """Download model file on startup if it doesn't exist. Model loading is lazy."""
+    """Download model file on startup if it doesn't exist."""
     if not os.path.exists(MODEL_PATH):
         print("Downloading model from Google Drive...")
         file_id = "1xgTR-zfUmGc59Y1CmTmv4wQ714kfJbnP"
@@ -35,7 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API routes BEFORE static mounts
+# API routes (keep for Swagger docs / external use)
 app.include_router(router, prefix='/api/v1')
 
 # Serve ARIMA/SARIMA images
@@ -50,9 +52,23 @@ def serve_index():
     with open("frontend/index.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
-# Dashboard page
+# Dashboard → inject forecast data directly into HTML (no fetch needed!)
 @app.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)
 @app.get("/dashboard.html", response_class=HTMLResponse, include_in_schema=False)
 def serve_dashboard():
     with open("frontend/dashboard.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+        html = f.read()
+
+    # Generate forecast and embed it in the page
+    try:
+        forecast_data = getForecast()
+        data_json = json.dumps(forecast_data)
+        # Inject data as a script tag before the closing </body>
+        inject_script = f'<script>window.__FORECAST_DATA__ = {data_json};</script>'
+        html = html.replace('</body>', f'{inject_script}\n</body>')
+    except Exception as e:
+        print(f"Error generating forecast: {e}")
+        # If forecast fails, inject null so JS can show an error
+        html = html.replace('</body>', '<script>window.__FORECAST_DATA__ = null;</script>\n</body>')
+
+    return HTMLResponse(content=html)
