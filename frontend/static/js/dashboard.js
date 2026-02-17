@@ -1,6 +1,6 @@
 /* ============================================
    Dashboard Page JavaScript
-   Uses server-injected data — NO fetch needed!
+   Async-first: always fetches from API if needed
    ============================================ */
 
 let forecastChartInstance = null;
@@ -13,16 +13,27 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Load dashboard using server-injected data (window.__FORECAST_DATA__)
+ * Load dashboard data.
+ * If server-injected data exists, use it instantly.
+ * Otherwise, poll the API asynchronously until the forecast is ready.
  */
-function loadDashboard() {
+async function loadDashboard() {
     setStatus('Loading...', 'loading');
 
     try {
-        const data = window.__FORECAST_DATA__;
+        let data = window.__FORECAST_DATA__;
 
-        if (!data || !data.forecast) {
-            throw new Error('Forecast data not available. Try refreshing the page.');
+        // If server-injected data is available & valid, use it immediately
+        if (data && data.forecast && data.forecast.length > 0) {
+            console.log('Using server-injected forecast data');
+        } else {
+            // Fetch from API with polling (handles background computation)
+            console.log('No server-injected data, fetching from API...');
+            data = await fetchForecastWithPolling(20, 3000);
+        }
+
+        if (!data || !data.forecast || data.forecast.length === 0) {
+            throw new Error('Forecast data not available. Please refresh the page.');
         }
 
         console.log('Forecast data loaded:', data);
@@ -35,8 +46,64 @@ function loadDashboard() {
     } catch (error) {
         console.error('Dashboard Error:', error);
         setStatus('Error', 'error');
-        showToast(`Dashboard error: ${error.message}`);
+        // Hide loading overlay even on error
+        const loading = document.getElementById('chartLoading');
+        if (loading) loading.classList.add('hidden');
+        showToast(error.message || 'Failed to load forecast data.');
     }
+}
+
+/**
+ * Poll the forecast API until data is ready.
+ * The API returns 202 while the model is still computing.
+ * @param {number} maxAttempts - Maximum polling attempts
+ * @param {number} intervalMs - Milliseconds between polls
+ */
+async function fetchForecastWithPolling(maxAttempts, intervalMs) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            console.log(`Fetching forecast (attempt ${attempt}/${maxAttempts})...`);
+
+            if (attempt <= 3) {
+                setStatus('Generating forecast...', 'loading');
+            } else {
+                setStatus(`Computing forecast (${attempt})...`, 'loading');
+            }
+
+            const response = await fetch('/api/v1/forecast');
+
+            if (response.status === 200) {
+                // Forecast ready!
+                const data = await response.json();
+                if (data && data.forecast && data.forecast.length > 0) {
+                    console.log('Forecast received from API!');
+                    return data;
+                }
+            }
+
+            if (response.status === 202) {
+                // Still computing — wait and retry
+                const body = await response.json();
+                console.log(`Server: ${body.message || 'Computing...'}`);
+            } else if (response.status === 503) {
+                // Server error — but might recover
+                const body = await response.json();
+                console.warn(`Server error: ${body.message || body.error}`);
+            } else if (!response.ok) {
+                console.warn(`API returned ${response.status}`);
+            }
+
+        } catch (error) {
+            console.warn(`Attempt ${attempt} failed:`, error.message);
+        }
+
+        // Wait before next poll
+        if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, intervalMs));
+        }
+    }
+
+    return null; // All attempts exhausted
 }
 
 /**
@@ -264,6 +331,7 @@ function toggleSidebar() {
  */
 function showToast(message) {
     const toast = document.getElementById('toast');
+    if (!toast) return;
     document.getElementById('toastMessage').textContent = message;
     toast.classList.add('show');
 
@@ -274,5 +342,6 @@ function showToast(message) {
  * Hide toast
  */
 function hideToast() {
-    document.getElementById('toast').classList.remove('show');
+    const toast = document.getElementById('toast');
+    if (toast) toast.classList.remove('show');
 }

@@ -1,11 +1,9 @@
 import sys
-import os
-import joblib
+import dill
 
 from src.exception import CustomException
 from src.logger import logging
 
-# Cache: load the model only once, reuse on subsequent calls
 _cached_model = None
 
 def loadModel():
@@ -16,7 +14,8 @@ def loadModel():
     try:
         MODEL_PATH = 'model.pkl'
         logging.info(f"Loading model from {MODEL_PATH}...")
-        _cached_model = joblib.load(MODEL_PATH)
+        with open(MODEL_PATH, 'rb') as f:
+            _cached_model = dill.load(f)
         logging.info("Model loaded and cached successfully")
         return _cached_model
     except Exception as e:
